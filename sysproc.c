@@ -89,3 +89,27 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_add(void)
+{
+  int a = 1;
+  int b = 2020;
+  //initialize the variable c, and try to get some value to it
+  int c;
+  int d;
+
+  /* 0 means to take in the first argument - if there was a 1, that means take in the second argument
+     so, take the first value and assign it to the value c is what argint(0, &c) means. */
+  if(argint(0, &c) < 0) 
+  {
+    return -1; //returns -1 if the assignment fails
+  }
+
+  if(argint(1, &d) < 0)
+  {
+    return -1;
+  }
+
+  return a+b+c+d;
+}

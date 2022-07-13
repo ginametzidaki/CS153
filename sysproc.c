@@ -90,6 +90,7 @@ sys_uptime(void)
   return xticks;
 }
 
+//Lab 0 Task
 int
 sys_add(void)
 {
@@ -112,4 +113,11 @@ sys_add(void)
   }
 
   return a+b+c+d;
+}
+
+//Lab 1 Part A
+int
+sys_getppid(void)
+{
+  return myproc()->parent->pid;
 }

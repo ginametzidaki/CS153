@@ -57,6 +57,7 @@ struct cmd *parsecmd(char*);
 void
 runcmd(struct cmd *cmd)
 {
+  int exit_status;
   int p[2];
   struct backcmd *bcmd;
   struct execcmd *ecmd;
@@ -65,7 +66,7 @@ runcmd(struct cmd *cmd)
   struct redircmd *rcmd;
 
   if(cmd == 0)
-    exit();
+    exit(10);
 
   switch(cmd->type){
   default:
@@ -74,7 +75,7 @@ runcmd(struct cmd *cmd)
   case EXEC:
     ecmd = (struct execcmd*)cmd;
     if(ecmd->argv[0] == 0)
-      exit();
+      exit(10);
     exec(ecmd->argv[0], ecmd->argv);
     printf(2, "exec %s failed\n", ecmd->argv[0]);
     break;
@@ -84,7 +85,7 @@ runcmd(struct cmd *cmd)
     close(rcmd->fd);
     if(open(rcmd->file, rcmd->mode) < 0){
       printf(2, "open %s failed\n", rcmd->file);
-      exit();
+      exit(10);
     }
     runcmd(rcmd->cmd);
     break;
@@ -93,7 +94,7 @@ runcmd(struct cmd *cmd)
     lcmd = (struct listcmd*)cmd;
     if(fork1() == 0)
       runcmd(lcmd->left);
-    wait();
+    wait(&exit_status);
     runcmd(lcmd->right);
     break;
 
@@ -117,8 +118,8 @@ runcmd(struct cmd *cmd)
     }
     close(p[0]);
     close(p[1]);
-    wait();
-    wait();
+    wait(&exit_status);
+    wait(&exit_status);
     break;
 
   case BACK:
@@ -127,7 +128,7 @@ runcmd(struct cmd *cmd)
       runcmd(bcmd->cmd);
     break;
   }
-  exit();
+  exit(10);
 }
 
 int
@@ -146,6 +147,7 @@ main(void)
 {
   static char buf[100];
   int fd;
+  int exit_status;
 
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
@@ -166,16 +168,16 @@ main(void)
     }
     if(fork1() == 0)
       runcmd(parsecmd(buf));
-    wait();
+    wait(&exit_status);
   }
-  exit();
+  exit(10);
 }
 
 void
 panic(char *s)
 {
   printf(2, "%s\n", s);
-  exit();
+  exit(10);
 }
 
 int

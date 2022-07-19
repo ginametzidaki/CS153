@@ -557,12 +557,16 @@ ps(void)
     procCount = p->scheduledCount;
     procMemSize = p->sz;
 
+    if(p->state == 0) {
+      continue;
+    }
+
     cprintf("Process: %d\n", procID);
-    if(p->pid > 0) {
+    if(p->pid > 1) {
       cprintf("Parent of process %d: %d\n", p->pid, p->parent->pid);
     }
     else {
-      cprintf("Parent of process %d: There is no parent!\n", p->pid);
+      cprintf("Parent of process %d: This is the initial process!\n", p->pid);
     }
 
     if(p->state == 0) {
@@ -587,10 +591,6 @@ ps(void)
     cprintf("Times process has been scheduled: %d\n", procCount);
     cprintf("Total memory size for process %d: %d\n", procID, procMemSize);
     cprintf("\n");
-    if(p->pid == 0) {
-      release(&ptable.lock);
-      return 0;
-    }
   }
   release(&ptable.lock);
 

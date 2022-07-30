@@ -301,6 +301,9 @@ wait(int *status)
         if(p->exitstatus != 0) {
           *status = p->exitstatus;
         }
+        else {
+          p->exitstatus = -1;
+        }
         release(&ptable.lock);
         return pid;
       }

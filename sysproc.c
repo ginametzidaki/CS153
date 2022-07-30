@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "spinlock.h"
 
 int
 sys_fork(void)
@@ -16,14 +17,27 @@ sys_fork(void)
 int
 sys_exit(void)
 {
-  exit();
+  int status;
+
+  if(argint(0, &status) < 0) 
+  {
+    return -1; //returns -1 if the assignment fails
+  }
+
+  exit(status);
   return 0;  // not reached
 }
 
 int
 sys_wait(void)
 {
-  return wait();
+  int *status;
+
+  if (argptr(0, (char **)&status,sizeof(status))<0) {
+    return -1;
+  }
+  
+  return wait(status);
 }
 
 int
@@ -90,6 +104,7 @@ sys_uptime(void)
   return xticks;
 }
 
+//Lab 0 Task
 int
 sys_add(void)
 {
@@ -112,4 +127,18 @@ sys_add(void)
   }
 
   return a+b+c+d;
+}
+
+//Lab 1 Part A
+int
+sys_getppid(void)
+{
+  return myproc()->parent->pid;
+}
+
+//Lab 1 Part D
+int
+sys_ps(void)
+{
+  return ps();
 }

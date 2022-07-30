@@ -223,13 +223,15 @@ fork(void)
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
-// until its parent calls wait() to find out it exited.
+// until its parent calls wait(&exit_status) to find out it exited.
 void
-exit(void)
+exit(int status)
 {
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
+
+  curproc->exitstatus = status;
 
   if(curproc == initproc)
     panic("init exiting");
@@ -249,7 +251,7 @@ exit(void)
 
   acquire(&ptable.lock);
 
-  // Parent might be sleeping in wait().
+  // Parent might be sleeping in wait(&exit_status).
   wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
@@ -269,13 +271,14 @@ exit(void)
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
+//passing address of the status 
 int
-wait(void)
+wait(int *status)
 {
   struct proc *p;
   int havekids, pid;
   struct proc *curproc = myproc();
-  
+
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children.
@@ -295,6 +298,12 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        if(p->exitstatus != 0) {
+          *status = p->exitstatus;
+        }
+        else {
+          p->exitstatus = -1;
+        }
         release(&ptable.lock);
         return pid;
       }
@@ -340,6 +349,8 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
+      p->scheduledCount++;
+
       switchuvm(p);
       p->state = RUNNING;
 
@@ -531,4 +542,60 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int
+ps(void)
+{
+  int procID;
+  int procCount;
+  int procMemSize;
+  struct proc *p;
+
+
+  
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    procID = p->pid;
+    procCount = p->scheduledCount;
+    procMemSize = p->sz;
+
+    if(p->state == 0) {
+      continue;
+    }
+
+    cprintf("Process: %d\n", procID);
+    if(p->pid > 1) {
+      cprintf("Parent of process %d: %d\n", p->pid, p->parent->pid);
+    }
+    else {
+      cprintf("Parent of process %d: This is the initial process!\n", p->pid);
+    }
+
+    if(p->state == 0) {
+      cprintf("Process Status: UNUSED\n");
+    }
+    else if(p->state == 1) {
+      cprintf("Process Status: EMBRYO\n");
+    }
+    else if(p->state == 2) {
+      cprintf("Process Status: SLEEPING\n");
+    }
+    else if(p->state == 3) {
+      cprintf("Process Status: RUNNABLE\n");
+    }
+    else if(p->state == 4) {
+      cprintf("Process Status: RUNNING\n");
+    }
+    else {
+      cprintf("Process Status: ZOMBIE\n");
+    }
+    
+    cprintf("Times process has been scheduled: %d\n", procCount);
+    cprintf("Total memory size for process %d: %d\n", procID, procMemSize);
+    cprintf("\n");
+  }
+  release(&ptable.lock);
+
+  return 0;
 }

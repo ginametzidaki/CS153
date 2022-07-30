@@ -20,4 +20,6 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
-#define SYS_add    22
+#define SYS_add    22 //Lab 0 Task
+#define SYS_getppid 23 //Lab 1 Part A
+#define SYS_ps      24 //Lab 1 Part D

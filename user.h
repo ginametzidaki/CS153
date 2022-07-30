@@ -3,8 +3,8 @@ struct rtcdate;
 
 // system calls
 int fork(void);
-int exit(void) __attribute__((noreturn));
-int wait(void);
+int exit(int status) __attribute__((noreturn)); //updated argument for Lab 1 Part B
+int wait(int *status);
 int pipe(int*);
 int write(int, const void*, int);
 int read(int, void*, int);
@@ -24,6 +24,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int add(int, int);
+int getppid(void);
+int ps(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

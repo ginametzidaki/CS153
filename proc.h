@@ -56,6 +56,7 @@ struct proc {
   int waitingStart;            //Lab 2
   int waitingEnd;              //Lab 2
   int waitingTotal;            //Lab 2
+  int scheduled;
 };
 
 // Process memory is laid out contiguously, low addresses first:

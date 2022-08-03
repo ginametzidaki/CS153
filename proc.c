@@ -237,17 +237,17 @@ exit(int status)
   int fd;
   int finishTime;
   int turnaround;
-  int waitingTime;
+  //int waitingTime;
 
   curproc->exitstatus = status;
   finishTime = ticks;
   turnaround = finishTime - curproc->startTime;
-  waitingTime = turnaround - curproc->waitingTotal;
+  //waitingTime = turnaround - curproc->waitingTotal;
 
   cprintf("Process %d exiting\n", curproc->pid);
   cprintf("Turnaround time: %d\n", turnaround);
-  cprintf("Waiting time: %d\n", waitingTime);
-  //cprintf("Waiting Total: %d\n", curproc->waitingTotal);
+  //cprintf("Waiting time: %d\n", waitingTime);
+  cprintf("Waiting Time: %d\n", curproc->waitingTotal);
 
   if(curproc == initproc)
     panic("init exiting");
@@ -348,6 +348,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *p2;
   int lowestPriority = 31;
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -384,13 +385,27 @@ scheduler(void)
         // before jumping back to us.
         c->proc = p;
         p->scheduledCount++;
+        //cprintf("Process Scheduled: %d\n Current lowest priority: %d\n", p->pid, lowestPriority);
 
         switchuvm(p);
         p->state = RUNNING;
-
+        
+      
         p->waitingEnd = ticks;
-        p->waitingTotal += p->waitingEnd - p->waitingStart;
+        if(p->scheduled == 0) {
+          p->waitingTotal = p->waitingTotal + (p->waitingEnd - p->waitingStart);
+        }
+        for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++) {
+          if(p2->state == RUNNABLE && p2->pid != p->pid && p2->scheduled == 1) {
+            p->waitingStart = ticks;
+          }
+          if(p2->pid != p->pid) {
+            p2->scheduled = 0;
+          }
+        }
 
+        p->scheduled = 1;
+        
         swtch(&(c->scheduler), p->context);
         switchkvm();
 
@@ -512,9 +527,10 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
-      p->state = RUNNABLE;
+    if(p->state == SLEEPING && p->chan == chan) {
       p->waitingStart = ticks;
+      p->state = RUNNABLE;
+    }
 }
 
 // Wake up all processes sleeping on chan.
@@ -539,9 +555,10 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
-        p->state = RUNNABLE;
+      if(p->state == SLEEPING) {
         p->waitingStart = ticks;
+        p->state = RUNNABLE;
+      }
       release(&ptable.lock);
       return 0;
     }

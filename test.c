@@ -6,8 +6,15 @@ int main(int argc, char *argv[])
 {
 	
     int PScheduler(void);
+    //int DonationTest(void);
     printf(1, "\n This program tests the correctness of your lab#2\n");
+    
+
+    printf(1, "\n\n~~~~~USING GIVEN TEST~~~~~\n\n");
 	PScheduler();
+    /*printf(1, "\n\n~~~~~PRIORITY DONATION TEST~~~~~\n\n");
+    DonationTest();*/
+
 	return 0;
 
 }
@@ -71,6 +78,44 @@ int PScheduler(void){
 	exit(0);		
 	return 0;
 }
+/*
+int DonationTest(void) {
+    int pid, pid1;
+    int exit_status;
+
+    setpriority(10);
+    printf(1, "Parent process %d has priority %d\n", getpid(), getpriority());
+    pid = fork();
+    if(pid == 0) {
+        setpriority(30);
+        printf(1, "Child process %d has priority %d\n", getpid(), getpriority());
+        pid1 = fork();
+    }
+    if(pid1 == 0) {
+        setpriority(20);
+        printf(1, "Grandchild process %d has priority %d\n", getpid(), getpriority());
+    }
+    if(pid && pid1) {
+        wait(&exit_status);
+    }
+
+    if(pid1 == 0) {
+        printf(1, "Grandchild exiting\n");
+        exit(0);
+    }
+
+    if(pid == 0) {
+        printf(1, "Child exiting\n");
+        exit(0);
+    }
+
+    printf(1, "Process %d priority: %d\n", getpid(), getpriority());
+    exit(0);
+
+
+    return 0;
+}*/
+
 
 /* LAB 1 TEST
 int main(int argc, char *argv[]) 

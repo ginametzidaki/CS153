@@ -106,6 +106,8 @@ extern int sys_uptime(void);
 extern int sys_add(void); //Lab 0 Task
 extern int sys_getppid(void); //Lab 1 Part A
 extern int sys_ps(void); //Lab 1 Part D
+extern int sys_setpriority(void); //Lab 2
+extern int sys_getpriority(void); //Lab 2
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -132,6 +134,8 @@ static int (*syscalls[])(void) = {
 [SYS_add]     sys_add,    //Lab 0 Task
 [SYS_getppid] sys_getppid, //Lab 1 Part A
 [SYS_ps]      sys_ps, //Lab 1 Part D
+[SYS_setpriority] sys_setpriority, //Lab 2
+[SYS_getpriority] sys_getpriority, //Lab 2
 };
 
 void

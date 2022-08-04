@@ -46,7 +46,7 @@ int PScheduler(void){
 
             setpriority(30-10*i);
             //getpriority();
-            printf(1, "This is process %d's priority: %d\n",getpid(),getpriority());
+            printf(1, "This is process %d's starting priority (after being set to %d with aging): %d\n",getpid(),30-10*i,getpriority());
 
             for (j=0;j<50000;j++) {
 
@@ -57,7 +57,8 @@ int PScheduler(void){
                     printf(1, "This is the process %d's priority in for loop: %d\n",getpid(), getpriority());
                 }*/
             }
-            printf(1, "\n child# %d with priority %d has finished! \n",getpid(),30-10*i);		
+            printf(1, "\n child# %d with starting priority %d has finished! \n",getpid(),30-10*i);	
+            printf(1, "This is process %d's exiting priority: %d\n",getpid(),getpriority());	
             exit(0);
         }
         

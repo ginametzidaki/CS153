@@ -401,6 +401,9 @@ scheduler(void)
           }
           if(p2->pid != p->pid) {
             p2->scheduled = 0;
+            if (p2->state == RUNNABLE && p2->priorityNumber > 0) {
+              p2->priorityNumber -= 1;
+            }
           }
         }
 
@@ -408,6 +411,10 @@ scheduler(void)
         
         swtch(&(c->scheduler), p->context);
         switchkvm();
+
+        if(p->priorityNumber < 31) {
+          p->priorityNumber += 1;
+        }
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.

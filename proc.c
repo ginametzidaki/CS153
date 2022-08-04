@@ -86,6 +86,7 @@ allocproc(void)
   return 0;
 
 found:
+  p->priorityNumber = 10;
   p->state = EMBRYO;
   p->pid = nextpid++;
 
@@ -149,6 +150,7 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  p->waitingStart = ticks;
 
   release(&ptable.lock);
 }
@@ -212,9 +214,12 @@ fork(void)
 
   pid = np->pid;
 
+  np->startTime = ticks;
+
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+  np->waitingStart = ticks;
 
   release(&ptable.lock);
 
@@ -230,8 +235,19 @@ exit(int status)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
+  int finishTime;
+  int turnaround;
+  //int waitingTime;
 
   curproc->exitstatus = status;
+  finishTime = ticks;
+  turnaround = finishTime - curproc->startTime;
+  //waitingTime = turnaround - curproc->waitingTotal;
+
+  cprintf("Process %d exiting\n", curproc->pid);
+  cprintf("Turnaround time: %d\n", turnaround);
+  //cprintf("Waiting time: %d\n", waitingTime);
+  cprintf("Waiting Time: %d\n", curproc->waitingTotal);
 
   if(curproc == initproc)
     panic("init exiting");
@@ -332,35 +348,81 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *p2;
+  int lowestPriority = 31;
   struct cpu *c = mycpu();
   c->proc = 0;
   
   for(;;){
+    lowestPriority = 31;
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+
+    //Find what the lowest priority is in the process table
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if(p->state != RUNNABLE)
+         continue;
+
+        if(p->priorityNumber < lowestPriority) {
+
+          lowestPriority = p->priorityNumber;
+
+        }
+        
+      }
+
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+
       if(p->state != RUNNABLE)
         continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      p->scheduledCount++;
+      if(p->priorityNumber == lowestPriority) {
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        p->scheduledCount++;
+        //cprintf("Process Scheduled: %d\n Current lowest priority: %d\n", p->pid, lowestPriority);
 
-      switchuvm(p);
-      p->state = RUNNING;
+        switchuvm(p);
+        p->state = RUNNING;
+        
+      
+        p->waitingEnd = ticks;
+        if(p->scheduled == 0) {
+          p->waitingTotal = p->waitingTotal + (p->waitingEnd - p->waitingStart);
+        }
+        for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++) {
+          if(p2->state == RUNNABLE && p2->pid != p->pid && p2->scheduled == 1) {
+            p->waitingStart = ticks;
+          }
+          if(p2->pid != p->pid) {
+            p2->scheduled = 0;
+            if (p2->state == RUNNABLE && p2->priorityNumber > 0) {
+              p2->priorityNumber -= 1;
+            }
+          }
+        }
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+        p->scheduled = 1;
+        
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        if(p->priorityNumber < 31) {
+          p->priorityNumber += 1;
+        }
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        
+      }
     }
+    
     release(&ptable.lock);
 
   }
@@ -398,6 +460,7 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
+  myproc()->waitingStart = ticks;
   sched();
   release(&ptable.lock);
 }
@@ -471,8 +534,10 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan) {
+      p->waitingStart = ticks;
       p->state = RUNNABLE;
+    }
 }
 
 // Wake up all processes sleeping on chan.
@@ -497,8 +562,10 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
+      if(p->state == SLEEPING) {
+        p->waitingStart = ticks;
         p->state = RUNNABLE;
+      }
       release(&ptable.lock);
       return 0;
     }
@@ -544,6 +611,7 @@ procdump(void)
   }
 }
 
+//Lab 1 Part D
 int
 ps(void)
 {

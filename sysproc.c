@@ -142,3 +142,31 @@ sys_ps(void)
 {
   return ps();
 }
+
+//Lab 2
+int
+sys_setpriority()
+{
+  int newPriority;
+
+  if(argint(0, &newPriority) < 0) 
+  {
+    newPriority = 0; //returns lowest priority if the assignment fails
+  }
+  else if(argint(0, &newPriority) > 31) {
+    newPriority = 31;
+  }
+
+  myproc()->priorityNumber = newPriority;
+
+  yield();
+
+  return 0;
+}
+
+//Lab 2
+int
+sys_getpriority(void)
+{
+  return myproc()->priorityNumber;
+}

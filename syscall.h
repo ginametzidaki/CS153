@@ -23,3 +23,5 @@
 #define SYS_add    22 //Lab 0 Task
 #define SYS_getppid 23 //Lab 1 Part A
 #define SYS_ps      24 //Lab 1 Part D
+#define SYS_setpriority 25 //Lab 2
+#define SYS_getpriority 26 //Lab 2

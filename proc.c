@@ -6,6 +6,9 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 struct {
   struct spinlock lock;
@@ -349,11 +352,27 @@ scheduler(void)
 {
   struct proc *p;
   struct proc *p2;
-  int lowestPriority = 31;
+  //int lowestPriority = 31; // COMMENT OUT ON LOTTERYSCHED
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+
+  ///*
+  int totalPriority = 0; // COMMENT OUT ON PRIORITYSCHED
+  float randomNum; // COMMENT OUT ON PRIORITYSCHED
+  int randomNumbers[100] = {93,69,33,25,15,95,99,94,35,76,
+                            16,29,52,37,37,43,81,27,31,34,
+                            5,30,36,66,48,72,57,14,24,33,
+                            95,86,54,91,73,51,86,8,72,60,
+                            4,26,78,66,95,49,32,32,71,49,
+                            55,21,4,68,40,12,94,56,99,43,
+                            99,17,15,76,32,47,2,34,62,63,
+                            80,76,92,21,53,19,55,29,85,23,
+                            3,43,64,20,57,18,39,60,3,4, 12}; // COMMENT OUT ON PRIORITYSCHED
+  int rotate = 0;// COMMENT OUT ON PRIORITYSCHED
+  //*/
   for(;;){
+    //PRIORITYSCHEDULING
+    /*
     lowestPriority = 31;
     // Enable interrupts on this processor.
     sti();
@@ -424,10 +443,87 @@ scheduler(void)
     }
     
     release(&ptable.lock);
+    */
+    //ENDPRIORITYSCHEDULING
 
+    //LOTTERYSCHEDULING
+    ///*
+    totalPriority = 0;
+    // Enable interrupts on this processor.
+    sti();
+
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+
+    //Find what the lowest priority is in the process table
+    //Find any runnable process and add it to the lottery
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if(p->state == RUNNABLE)
+          totalPriority += p->priorityNumber;
+        else
+          continue;
+      }
+
+    //Choose which process to run
+    randomNum = randomNumbers[rotate] % (totalPriority + 1);
+    rotate++;
+    if(rotate>=100){
+      rotate = 0;
+    }
+
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if(p->state == RUNNABLE){
+        //Subtract from the 
+        randomNum -= p->priorityNumber;
+      }
+      else
+        continue;
+      if(randomNum <= 0){
+          // Switch to chosen process.  It is the process's job
+          // to release ptable.lock and then reacquire it
+          // before jumping back to us.
+          c->proc = p;
+          p->scheduledCount++;
+          
+          switchuvm(p);
+          p->state = RUNNING;
+          
+          p->waitingEnd = ticks;
+
+          if(p->scheduled == 0) {
+            p->waitingTotal = p->waitingTotal + (p->waitingEnd - p->waitingStart);
+          }
+          for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++) {
+            if(p2->state == RUNNABLE && p2->pid != p->pid && p2->scheduled == 1) {
+              p->waitingStart = ticks;
+            }
+            if(p2->pid != p->pid) {
+              p2->scheduled = 0;
+              if (p2->state == RUNNABLE && p2->priorityNumber > 0) {
+                p2->priorityNumber -= 1;
+              }
+            }
+          }
+          
+          p->scheduled = 1;
+          
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+
+          if(p->priorityNumber > 0) {
+            p->priorityNumber -= 1;
+          }
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+    }
+    
+    release(&ptable.lock);
+    //*/
+    //ENDLOTTERYSCHEDULING
   }
 }
-
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this
